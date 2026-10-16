@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src 'self' 'nonce-{REPORT_NONCE}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://esm.sh;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+    font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+    img-src 'self' data: blob: https:;
+    connect-src 'self';
+  ">
+  <title>Month-to-Month Cost Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" integrity="sha384-y49Zu59jZHJL/PLKgZPv3k2WI9c0Yp3pWB76V8OBVCb0QBKS8l4Ff3YslzHVX76Y" crossorigin="anonymous"></script>
+  <style nonce="{REPORT_NONCE}">
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fb; color: #1a1a2e; padding: 24px; line-height: 1.5; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .header-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .header h1 { font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; margin: 0; }
+    .header .sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .sub-picker { position: relative; display: inline-block; }
+    .sub-picker-btn { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; padding: 7px 32px 7px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center; color: #334155; cursor: pointer; min-width: 220px; text-align: left; transition: border-color 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sub-picker-btn:hover { border-color: #94a3b8; }
+    .sub-picker-btn:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .sub-picker.open .sub-picker-btn { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .sub-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 100; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); min-width: 340px; max-height: 300px; overflow-y: auto; padding: 6px 0; }
+    .sub-picker.open .sub-dropdown { display: block; }
+    .sub-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; font-size: 13px; color: #334155; transition: background 0.1s; }
+    .sub-item:hover { background: #f1f5f9; }
+    .sub-item.select-all { border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #1e40af; padding-bottom: 10px; margin-bottom: 2px; }
+    .sub-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: #3b82f6; cursor: pointer; flex-shrink: 0; }
+    .sub-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sub-item-id { font-size: 11px; color: #94a3b8; font-family: monospace; }
+    .sub-count { font-size: 11px; color: #64748b; background: #e2e8f0; border-radius: 10px; padding: 1px 8px; margin-left: 6px; }
+    .refresh-info { font-size: 12px; color: #94a3b8; text-align: right; padding-top: 4px; }
+    .refresh-info .hint { font-size: 11px; color: #cbd5e1; margin-top: 2px; }
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: #fff; border-radius: 10px; padding: 20px; border: 1px solid #e2e8f0; }
+    .kpi-card .label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .kpi-card .value { font-size: 28px; font-weight: 700; color: #0f172a; }
+    .kpi-card .detail { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    .change-up { color: #ef4444 !important; }
+    .change-down { color: #22c55e !important; }
+    .section { background: #fff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 20px; }
+    .section h2 { font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 16px; }
+    .chart-container { position: relative; height: 380px; width: 100%; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { text-align: left; font-weight: 600; color: #475569; padding: 10px 12px; border-bottom: 2px solid #e2e8f0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+    thead th.cost-col { text-align: right; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    tbody tr:hover { background: #f8fafc; }
+    .cost { font-variant-numeric: tabular-nums; font-weight: 500; text-align: right; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge-new { background: #dbeafe; color: #1d4ed8; }
+    .badge-up { background: #fee2e2; color: #dc2626; }
+    .badge-down { background: #dcfce7; color: #16a34a; }
+    .badge-stable { background: #f0fdf4; color: #15803d; }
+    .note-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #1e40af; margin-bottom: 20px; }
+    .parent-row { cursor: pointer; }
+    .parent-row:hover { background: #f1f5f9; }
+    .toggle-icon { display: inline-block; width: 18px; height: 18px; text-align: center; font-size: 11px; line-height: 18px; border-radius: 4px; background: #e2e8f0; color: #475569; margin-right: 6px; transition: transform 0.15s ease, background 0.15s ease; font-weight: 700; vertical-align: middle; user-select: none; }
+    .parent-row.expanded .toggle-icon { background: #3b82f6; color: #fff; transform: rotate(90deg); }
+    .child-row { display: none; }
+    .child-row.visible { display: table-row; }
+    .child-row td { padding: 6px 12px 6px 44px; font-size: 12px; color: #64748b; border-bottom: 1px solid #f8fafc; background: #fafbfc; }
+    .child-row td.cost { color: #64748b; }
+    .svc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+    .new-section { margin-bottom: 20px; }
+    .new-section .section { margin-bottom: 0; }
+    .month-row { cursor: pointer; font-weight: 600; }
+    .month-row:hover { background: #f1f5f9; }
+    .month-row td { padding: 12px 12px; border-bottom: 1px solid #e2e8f0; }
+    .month-child { display: none; }
+    .month-child.visible { display: table-row; }
+    .month-child td { padding: 6px 12px 6px 44px; font-size: 12px; color: #64748b; background: #fafbfc; border-bottom: 1px solid #f8fafc; }
+    .month-child td.cost { color: #64748b; }
+    .month-row.expanded .toggle-icon { background: #3b82f6; color: #fff; transform: rotate(90deg); }
+    .trend-chart-container { position: relative; height: 260px; width: 100%; margin-bottom: 16px; }
+    .pct-bar { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
+    .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="header-left">
+        <h1>Month-to-Month Cost Analysis</h1>
+        <!-- ============================================================
+             SUBSCRIPTION PICKER — populated by the agent at refresh time.
+             Add one <label class="sub-item"> per subscription.
+             ============================================================ -->
+        <div class="sub-picker" id="sub-picker">
+          <button class="sub-picker-btn" id="sub-picker-btn" type="button">
+            All Subscriptions <span class="sub-count" id="sub-count">0</span>
+          </button>
+          <div class="sub-dropdown" id="sub-dropdown">
+            <label class="sub-item select-all">
+              <input type="checkbox" id="sub-check-all" checked>
+              <span class="sub-item-name">Select All</span>
+            </label>
+            <!-- === SUBSCRIPTION ENTRIES — REPLACE THIS BLOCK ===
+            <label class="sub-item">
+              <input type="checkbox" class="sub-check" value="{SUBSCRIPTION_ID}" checked>
+              <div>
+                <div class="sub-item-name">{SUBSCRIPTION_DISPLAY_NAME}</div>
+                <div class="sub-item-id">{SUBSCRIPTION_ID_SHORT}</div>
+              </div>
+            </label>
+            === END SUBSCRIPTION ENTRIES === -->
+          </div>
+        </div>
+      </div>
+      <div class="sub" id="sub-name">0 subscriptions selected</div>
+    </div>
+    <div class="refresh-info">
+      <!-- REPLACE with snapshot date each refresh -->
+      Data snapshot: {SNAPSHOT_DATE}
+      <div class="hint">Ask the agent "update the cost report" to refresh</div>
+    </div>
+  </div>
+
+  <div class="note-box">
+    <!-- REPLACE with actual month names and day counts each refresh -->
+    Current month costs are projected from partial data to a full month. Previous months show actual costs. Click any row to expand the per-service breakdown.
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="label" id="kpi-cur-label">Current Month (Projected)</div>
+      <div class="value" id="kpi-cur">&mdash;</div>
+      <div class="detail" id="kpi-cur-detail">Full month projection</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label" id="kpi-prev-label">Previous Month (Actual)</div>
+      <div class="value" id="kpi-prev">&mdash;</div>
+      <div class="detail">Complete month</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Month-over-Month Change</div>
+      <div class="value" id="kpi-change">&mdash;</div>
+      <div class="detail" id="kpi-change-detail"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">New Resources</div>
+      <div class="value" id="kpi-new">0</div>
+      <div class="detail" id="kpi-new-detail"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Last 6 Months &mdash; Total Cost Trend</h2>
+    <div class="trend-chart-container"><canvas id="trend-chart"></canvas></div>
+    <div id="monthly-table-container"></div>
+  </div>
+
+  <div class="section">
+    <h2>Top 15 Resources &mdash; Full Month Cost</h2>
+    <div class="chart-container"><canvas id="top-chart"></canvas></div>
+  </div>
+
+  <div class="new-section" id="new-section-wrapper" style="display:none;">
+    <div class="section">
+      <h2 id="new-heading">New Resources This Month</h2>
+      <div id="new-container"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>All Resources &mdash; Month-over-Month (click row to expand services)</h2>
+    <div id="table-container"></div>
+  </div>
+
+<script nonce="{REPORT_NONCE}">
+(function() {
+  // ============================================================================
+  // CONFIGURATION — updated by the agent on each refresh
+  // ============================================================================
+  const DAYS_ELAPSED = 1;     // days of data in current month so far
+  const DAYS_IN_MONTH = 31;   // total days in current month
+  const RATIO = DAYS_IN_MONTH / DAYS_ELAPSED;
+  const CUR_MONTH_NAME = 'Current Month';   // e.g. "October 2026"
+  const PREV_MONTH_NAME = 'Previous Month'; // e.g. "September 2026"
+
+  // ============================================================================
+  // 6-MONTH COST DATA — per-service breakdown by month
+  // Agent populates this from Cost Management API (Monthly granularity, grouped by ServiceName)
+  // Format: { month: 'YYYY-MM', label: 'Mon YYYY', partial: bool, services: [{ svc, cost }] }
+  // ============================================================================
+  const monthlyData = [
+    // Example:
+    // { month: '2026-05', label: 'May 2026', partial: false, services: [
+    //   { svc: 'Azure Bastion', cost: 215.93 },
+    //   { svc: 'Storage', cost: 131.96 },
+    // ]},
+  ];
+  monthlyData.forEach(m => { m.total = m.services.reduce((s, sv) => s + sv.cost, 0); });
+
+  // ============================================================================
+  // RESOURCE DATA — per-resource with per-service breakdown (current vs previous month)
+  // Agent populates from two Cost Management queries (current MTD + previous full month)
+  // Format: { name, rg, services: [{ svc, cur, prev }] }
+  //   cur = current month MTD actual cost
+  //   prev = previous full month actual cost
+  // ============================================================================
+  const resources = [
+    // Example:
+    // { name: "bastion-shared", rg: "rg-network", services: [
+    //   { svc: "Azure Bastion", cur: 32.21, prev: 208.98 }
+    // ]},
+  ];
+
+  // ============================================================================
+  // SERVICE COLOR MAP — add any new services as they appear
+  // ============================================================================
+  const svcColors = {
+    'Storage': '#f59e0b', 'Azure Bastion': '#6366f1', 'Azure DNS': '#06b6d4',
+    'Virtual Network': '#8b5cf6', 'NAT Gateway': '#ec4899', 'Azure Grafana Service': '#f97316',
+    'Foundry Tools': '#3b82f6', 'Backup': '#14b8a6', 'Azure App Service': '#10b981',
+    'Microsoft Defender for Cloud': '#ef4444', 'Azure Monitor': '#a855f7',
+    'Log Analytics': '#0ea5e9', 'Virtual Machines': '#64748b', 'Automation': '#78716c',
+    'Logic Apps': '#d946ef', 'Bandwidth': '#94a3b8', 'Key Vault': '#f43f5e',
+    'Load Balancer': '#0284c7', 'Container Instances': '#7c3aed', 'Functions': '#059669',
+    'Virtual Machines Licenses': '#475569', 'Event Grid': '#db2777', 'Network Watcher': '#0891b2',
+    'SQL Database': '#4f46e5',
+  };
+  function svcColor(svc) { return svcColors[svc] || '#94a3b8'; }
+
+  // --- Subscription Picker Logic ---
+  (function() {
+    const picker = document.getElementById('sub-picker');
+    const btn = document.getElementById('sub-picker-btn');
+    const checkAll = document.getElementById('sub-check-all');
+    const checks = document.querySelectorAll('.sub-check');
+    const countEl = document.getElementById('sub-count');
+    const subLabel = document.getElementById('sub-name');
+    function updateLabel() {
+      const selected = document.querySelectorAll('.sub-check:checked');
+      const total = checks.length;
+      countEl.textContent = selected.length;
+      if (total === 0) {
+        btn.childNodes[0].textContent = 'No Subscriptions ';
+        subLabel.textContent = 'No subscriptions configured';
+      } else if (selected.length === total) {
+        btn.childNodes[0].textContent = 'All Subscriptions ';
+        subLabel.textContent = total + ' subscription' + (total > 1 ? 's' : '') + ' selected';
+        checkAll.checked = true; checkAll.indeterminate = false;
+      } else if (selected.length === 0) {
+        btn.childNodes[0].textContent = 'No Subscription ';
+        subLabel.textContent = 'No subscriptions selected';
+        checkAll.checked = false; checkAll.indeterminate = false;
+      } else {
+        const firstName = selected[0].closest('.sub-item').querySelector('.sub-item-name').textContent;
+        btn.childNodes[0].textContent = firstName + (selected.length > 1 ? ' +' + (selected.length - 1) : '') + ' ';
+        subLabel.textContent = selected.length + ' of ' + total + ' subscriptions selected';
+        checkAll.checked = false; checkAll.indeterminate = true;
+      }
+    }
+    btn.addEventListener('click', function(e) { e.stopPropagation(); picker.classList.toggle('open'); });
+    document.addEventListener('click', function(e) { if (!picker.contains(e.target)) picker.classList.remove('open'); });
+    checkAll.addEventListener('change', function() { checks.forEach(c => { c.checked = checkAll.checked; }); updateLabel(); });
+    checks.forEach(c => { c.addEventListener('change', updateLabel); });
+    updateLabel();
+  })();
+
+  // --- Helpers ---
+  const fmt = (n) => '$' + n.toFixed(2);
+  const fmtK = (n) => n >= 1000 ? '$' + (n/1000).toFixed(1) + 'k' : '$' + n.toFixed(2);
+  const pctFmt = (n) => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+
+  Chart.register(ChartDataLabels);
+
+  // ===================== 6-MONTH TREND =====================
+  if (monthlyData.length > 0) {
+    const trendCtx = document.getElementById('trend-chart').getContext('2d');
+    new Chart(trendCtx, {
+      type: 'bar',
+      data: {
+        labels: monthlyData.map(m => m.label + (m.partial ? ' *' : '')),
+        datasets: [{ label: 'Monthly Cost (USD)', data: monthlyData.map(m => m.total), backgroundColor: monthlyData.map(m => m.partial ? '#93c5fd' : '#3b82f6'), borderRadius: 6, barPercentage: 0.6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: (v) => '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v.toFixed(0)), font: { size: 11, weight: 600, family: 'Inter' }, color: '#334155' } },
+        scales: { y: { ticks: { callback: (v) => '$' + v, font: { family: 'Inter', size: 11 } }, grid: { color: '#f1f5f9' }, beginAtZero: true }, x: { ticks: { font: { family: 'Inter', size: 12, weight: 500 } }, grid: { display: false } } }
+      }
+    });
+
+    // Expandable monthly table
+    const mc = document.getElementById('monthly-table-container');
+    const t = document.createElement('table');
+    const th = document.createElement('thead'); const hr = document.createElement('tr');
+    ['Month', 'Total Cost', 'Top Service', 'Services', 'vs Previous'].forEach(h => { const c = document.createElement('th'); c.textContent = h; if (h === 'Total Cost' || h === 'vs Previous') c.className = 'cost-col'; hr.appendChild(c); });
+    th.appendChild(hr); t.appendChild(th);
+    const tb = document.createElement('tbody');
+    monthlyData.forEach((m, idx) => {
+      const topSvc = m.services.reduce((a, b) => a.cost > b.cost ? a : b);
+      const prevMonth = idx > 0 ? monthlyData[idx - 1] : null;
+      const tr = document.createElement('tr'); tr.className = 'month-row'; tr.dataset.midx = idx;
+      const c1 = document.createElement('td'); const toggle = document.createElement('span'); toggle.className = 'toggle-icon'; toggle.textContent = '\u25B6'; c1.appendChild(toggle); c1.appendChild(document.createTextNode(m.label + (m.partial ? ' (partial)' : '')));
+      const c2 = document.createElement('td'); c2.className = 'cost'; c2.textContent = '$' + m.total.toFixed(2);
+      const c3 = document.createElement('td'); const dot = document.createElement('span'); dot.className = 'svc-dot'; dot.style.backgroundColor = svcColor(topSvc.svc); c3.appendChild(dot); c3.appendChild(document.createTextNode(topSvc.svc + ' ($' + topSvc.cost.toFixed(0) + ')'));
+      const c4 = document.createElement('td'); c4.textContent = m.services.filter(s => s.cost > 0.01).length + ' services';
+      const c5 = document.createElement('td'); c5.className = 'cost';
+      if (prevMonth) { const delta = ((m.total - prevMonth.total) / prevMonth.total) * 100; c5.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(1) + '%'; c5.style.color = delta > 5 ? '#ef4444' : delta < -5 ? '#22c55e' : '#64748b'; } else { c5.textContent = '\u2014'; }
+      tr.append(c1, c2, c3, c4, c5); tb.appendChild(tr);
+      m.services.filter(s => s.cost > 0.005).sort((a, b) => b.cost - a.cost).forEach(sv => {
+        const cr = document.createElement('tr'); cr.className = 'month-child'; cr.dataset.mparent = idx;
+        const sc1 = document.createElement('td'); const sdot = document.createElement('span'); sdot.className = 'svc-dot'; sdot.style.backgroundColor = svcColor(sv.svc); sc1.appendChild(sdot); sc1.appendChild(document.createTextNode(sv.svc));
+        const sc2 = document.createElement('td'); sc2.className = 'cost'; sc2.textContent = '$' + sv.cost.toFixed(2);
+        const sc3 = document.createElement('td'); const pctOfTotal = (sv.cost / m.total * 100); const bar = document.createElement('span'); bar.className = 'pct-bar'; bar.style.width = Math.max(4, Math.min(120, pctOfTotal * 1.2)) + 'px'; bar.style.backgroundColor = svcColor(sv.svc); sc3.appendChild(bar); sc3.appendChild(document.createTextNode(pctOfTotal.toFixed(1) + '%'));
+        const sc4 = document.createElement('td'); const sc5 = document.createElement('td');
+        cr.append(sc1, sc2, sc3, sc4, sc5); tb.appendChild(cr);
+      });
+      tr.addEventListener('click', function() { const ex = tr.classList.toggle('expanded'); tb.querySelectorAll('tr.month-child[data-mparent="' + idx + '"]').forEach(c => c.classList.toggle('visible', ex)); });
+    });
+    t.appendChild(tb); mc.appendChild(t);
+  } else {
+    document.getElementById('monthly-table-container').innerHTML = '<div class="empty-state">No monthly data yet. Ask the agent to populate this report.</div>';
+  }
+
+  // ===================== RESOURCE PROCESSING =====================
+  const processed = resources
+    .map(r => {
+      const curMTD = r.services.reduce((s, sv) => s + sv.cur, 0);
+      const prevFull = r.services.reduce((s, sv) => s + sv.prev, 0);
+      const curFull = curMTD * RATIO;
+      let status = 'stable';
+      if (curMTD > 0 && prevFull === 0) status = 'new';
+      else if (curFull > prevFull * 1.15) status = 'up';
+      else if (curFull < prevFull * 0.85) status = 'down';
+      const delta = prevFull > 0 ? ((curFull - prevFull) / prevFull) * 100 : (curMTD > 0 ? Infinity : 0);
+      const svcDetails = r.services.map(sv => ({ svc: sv.svc, curFull: sv.cur * RATIO, prevFull: sv.prev }));
+      return { ...r, curMTD, curFull, prevFull, status, delta, svcDetails };
+    })
+    .filter(r => r.curMTD > 0)
+    .sort((a, b) => b.curFull - a.curFull);
+
+  const curTotal = processed.reduce((s, r) => s + r.curFull, 0);
+  const prevTotal = processed.reduce((s, r) => s + r.prevFull, 0);
+  const projChange = prevTotal > 0 ? ((curTotal - prevTotal) / prevTotal) * 100 : 0;
+  const newCount = processed.filter(r => r.status === 'new').length;
+
+  // KPI cards
+  document.getElementById('kpi-cur').textContent = curTotal > 0 ? fmtK(curTotal) : '\u2014';
+  document.getElementById('kpi-cur-label').textContent = CUR_MONTH_NAME + ' (Projected)';
+  document.getElementById('kpi-prev').textContent = prevTotal > 0 ? fmtK(prevTotal) : '\u2014';
+  document.getElementById('kpi-prev-label').textContent = PREV_MONTH_NAME + ' (Actual)';
+  if (curTotal > 0 && prevTotal > 0) {
+    const changeEl = document.getElementById('kpi-change');
+    changeEl.textContent = pctFmt(projChange);
+    changeEl.className = 'value ' + (projChange > 2 ? 'change-up' : projChange < -2 ? 'change-down' : '');
+    document.getElementById('kpi-change-detail').textContent = CUR_MONTH_NAME + ' projected vs ' + PREV_MONTH_NAME;
+  }
+  document.getElementById('kpi-new').textContent = newCount;
+  document.getElementById('kpi-new-detail').textContent = newCount > 0 ? 'Added in ' + CUR_MONTH_NAME : 'No new resources';
+
+  // ===================== TOP 15 CHART =====================
+  if (processed.length > 0) {
+    const top15 = processed.slice(0, 15);
+    const ctx = document.getElementById('top-chart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: top15.map(r => r.name.length > 28 ? r.name.slice(0, 25) + '...' : r.name),
+        datasets: [
+          { label: CUR_MONTH_NAME + ' (Projected)', data: top15.map(r => r.curFull), backgroundColor: '#3b82f6', borderRadius: 4 },
+          { label: PREV_MONTH_NAME + ' (Actual)', data: top15.map(r => r.prevFull), backgroundColor: '#cbd5e1', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { position: 'top', labels: { font: { family: 'Inter', size: 12 } } }, datalabels: { anchor: 'end', align: 'end', formatter: (v) => v >= 1 ? '$' + v.toFixed(0) : '', font: { size: 10, family: 'Inter' }, color: '#64748b' } },
+        scales: { x: { ticks: { callback: (v) => '$' + v, font: { family: 'Inter', size: 11 } }, grid: { color: '#f1f5f9' } }, y: { ticks: { font: { family: 'Inter', size: 11 } }, grid: { display: false } } }
+      }
+    });
+  }
+
+  // ===================== NEW RESOURCES =====================
+  const newRes = processed.filter(r => r.status === 'new');
+  if (newRes.length > 0) {
+    document.getElementById('new-section-wrapper').style.display = 'block';
+    document.getElementById('new-heading').textContent = 'New Resources This Month (' + newRes.length + ')';
+    const nc = document.getElementById('new-container');
+    const t = document.createElement('table'); const th = document.createElement('thead'); const hr = document.createElement('tr');
+    ['Resource', 'Service', CUR_MONTH_NAME + ' (Full)', 'Status'].forEach(h => { const c = document.createElement('th'); c.textContent = h; if (h.includes('Full')) c.className = 'cost-col'; hr.appendChild(c); });
+    th.appendChild(hr); t.appendChild(th);
+    const tb = document.createElement('tbody');
+    newRes.forEach(r => { const tr = document.createElement('tr'); const c1 = document.createElement('td'); c1.textContent = r.name; const c2 = document.createElement('td'); c2.textContent = r.services.map(s => s.svc).join(', '); const c3 = document.createElement('td'); c3.textContent = fmt(r.curFull); c3.className = 'cost'; const c4 = document.createElement('td'); const b = document.createElement('span'); b.className = 'badge badge-new'; b.textContent = 'New'; c4.appendChild(b); tr.append(c1, c2, c3, c4); tb.appendChild(tr); });
+    t.appendChild(tb); nc.appendChild(t);
+  }
+
+  // ===================== FULL COMPARISON TABLE =====================
+  if (processed.length > 0) {
+    const tc = document.getElementById('table-container');
+    const mt = document.createElement('table'); const mth = document.createElement('thead'); const mhr = document.createElement('tr');
+    ['Resource', 'Resource Group', CUR_MONTH_NAME + ' (Full)', PREV_MONTH_NAME, 'Change', 'Status'].forEach(h => { const c = document.createElement('th'); c.textContent = h; if (h.includes('Full') || h === PREV_MONTH_NAME || h === 'Change') c.className = 'cost-col'; mhr.appendChild(c); });
+    mth.appendChild(mhr); mt.appendChild(mth);
+    const mtb = document.createElement('tbody');
+    processed.filter(r => r.curFull > 0.05 || r.prevFull > 0.05).forEach((r, idx) => {
+      const tr = document.createElement('tr'); tr.className = 'parent-row'; tr.dataset.idx = idx;
+      const c1 = document.createElement('td'); const toggle = document.createElement('span'); toggle.className = 'toggle-icon'; toggle.textContent = '\u25B6'; c1.appendChild(toggle); const nameSpan = document.createElement('span'); nameSpan.textContent = r.name; c1.appendChild(nameSpan);
+      if (r.services.length > 1) { const cb = document.createElement('span'); cb.style.cssText = 'font-size:10px;color:#94a3b8;margin-left:6px;'; cb.textContent = r.services.length + ' services'; c1.appendChild(cb); }
+      const c2 = document.createElement('td'); c2.textContent = r.rg;
+      const c3 = document.createElement('td'); c3.textContent = fmt(r.curFull); c3.className = 'cost';
+      const c4 = document.createElement('td'); c4.textContent = fmt(r.prevFull); c4.className = 'cost';
+      const c5 = document.createElement('td'); c5.className = 'cost';
+      if (r.status === 'new') c5.textContent = 'NEW'; else if (r.prevFull > 0) c5.textContent = pctFmt(r.delta); else c5.textContent = '\u2014';
+      const c6 = document.createElement('td'); const badge = document.createElement('span'); badge.className = 'badge';
+      if (r.status === 'new') { badge.classList.add('badge-new'); badge.textContent = 'New'; }
+      else if (r.status === 'up') { badge.classList.add('badge-up'); badge.textContent = 'Increase'; }
+      else if (r.status === 'down') { badge.classList.add('badge-down'); badge.textContent = 'Decrease'; }
+      else { badge.classList.add('badge-stable'); badge.textContent = 'Stable'; }
+      c6.appendChild(badge);
+      tr.append(c1, c2, c3, c4, c5, c6); mtb.appendChild(tr);
+      r.svcDetails.forEach(sv => {
+        const cr = document.createElement('tr'); cr.className = 'child-row'; cr.dataset.parent = idx;
+        const sc1 = document.createElement('td'); const d = document.createElement('span'); d.className = 'svc-dot'; d.style.backgroundColor = svcColor(sv.svc); sc1.appendChild(d); sc1.appendChild(document.createTextNode(sv.svc));
+        const sc2 = document.createElement('td');
+        const sc3 = document.createElement('td'); sc3.textContent = fmt(sv.curFull); sc3.className = 'cost';
+        const sc4 = document.createElement('td'); sc4.textContent = fmt(sv.prevFull); sc4.className = 'cost';
+        const sc5 = document.createElement('td'); sc5.className = 'cost';
+        if (sv.prevFull > 0) { sc5.textContent = pctFmt(((sv.curFull - sv.prevFull) / sv.prevFull) * 100); } else if (sv.curFull > 0) { sc5.textContent = 'NEW'; } else { sc5.textContent = '\u2014'; }
+        const sc6 = document.createElement('td');
+        cr.append(sc1, sc2, sc3, sc4, sc5, sc6); mtb.appendChild(cr);
+      });
+      tr.addEventListener('click', function() { const ex = tr.classList.toggle('expanded'); mtb.querySelectorAll('tr.child-row[data-parent="' + idx + '"]').forEach(c => c.classList.toggle('visible', ex)); });
+    });
+    mt.appendChild(mtb); tc.appendChild(mt);
+  } else {
+    document.getElementById('table-container').innerHTML = '<div class="empty-state">No resource data yet. Ask the agent to populate this report.</div>';
+  }
+})();
+</script>
+</body>
+</html>
