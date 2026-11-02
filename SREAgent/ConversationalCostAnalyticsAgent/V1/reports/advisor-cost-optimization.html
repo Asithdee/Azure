@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'self' 'nonce-{REPORT_NONCE}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://esm.sh;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+  font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+  img-src 'self' data: blob: https:;
+  connect-src 'self';
+">
+<title>Azure Advisor Cost Optimization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gridjs@6.2.0/dist/gridjs.umd.js" integrity="sha384-y62I+ZvjNRolkugL/AMpUZykqrL6oqYxBruObmlDAhDpmapM0s+xgvVK+wGVpza0" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@6.2.0/dist/theme/mermaid.min.css" integrity="sha384-i8iPOOXHyYKlqvjJjbORq7m/VrfUhgupTg3IZvtXz8M7c0CiTPUUhM5gdjiQiGbv" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous"></script>
+<style nonce="{REPORT_NONCE}">
+  :root {
+    --bg: #f8f9fb; --card: #fff; --border: #e2e5ea;
+    --text: #1a1d23; --muted: #5f6776;
+    --green: #059669; --amber: #d97706; --red: #dc2626; --blue: #2563eb;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.5; padding:24px;
+  }
+  .hdr { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+  .hdr h1 { font-size:22px; font-weight:700; letter-spacing:-0.3px; }
+  .hdr .sub { font-size:12px; color:var(--muted); }
+
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:26px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .card .lbl { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; }
+  .card .val { font-size:22px; font-weight:700; }
+  .card .val.g { color:var(--green); } .card .val.a { color:var(--amber); } .card .val.r { color:var(--red); }
+
+  .sec { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:24px; }
+  .sec h2 { font-size:15px; font-weight:600; margin-bottom:2px; }
+  .sec .desc { font-size:12px; color:var(--muted); margin-bottom:14px; }
+
+  .b { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .b-red { background:#fef2f2; color:#b91c1c; }
+  .b-amb { background:#fffbeb; color:#92400e; }
+  .b-grn { background:#ecfdf5; color:#065f46; }
+  .b-blu { background:#eff6ff; color:#1e40af; }
+  .b-gry { background:#f3f4f6; color:#374151; }
+
+  .empty { padding:16px; background:#f9fafb; border:1px solid var(--border); border-radius:8px; color:var(--muted); font-size:13px; text-align:center; }
+  .chart-wrap { max-width:420px; margin:0 auto 18px; }
+
+  .gridjs-wrapper { border-radius:8px; }
+  .gridjs-table { font-size:13px; }
+  .gridjs-th { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+  .gridjs-search-input { font-size:13px; border-radius:6px; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>Azure Advisor &mdash; Cost Optimization</h1>
+    <span class="sub" id="hdr-sub"></span>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card"><div class="lbl">VM Right-Size Savings</div><div class="val g" id="c-vm"></div></div>
+  <div class="card"><div class="lbl">Top RI Savings</div><div class="val g" id="c-ri"></div></div>
+  <div class="card"><div class="lbl">Savings Plan Savings</div><div class="val g" id="c-sp"></div></div>
+  <div class="card"><div class="lbl">Orphaned Resources</div><div class="val a" id="c-or"></div></div>
+  <div class="card"><div class="lbl">Existing Reservations</div><div class="val" id="c-res"></div></div>
+</div>
+
+<!-- 1 ── VM Right-Sizing ── -->
+<div class="sec">
+  <h2>VM Right-Sizing Recommendations</h2>
+  <div class="desc">Underutilized VMs identified by Azure Advisor &mdash; consider shutting down or resizing to save costs.</div>
+  <div id="t-vm"></div>
+</div>
+
+<!-- 2 ── Reservation Advisory ── -->
+<div class="sec">
+  <h2>Reservation Purchase Advisory</h2>
+  <div class="desc">Azure Advisor recommendations for reserved instance purchases to reduce on-demand costs.</div>
+  <div id="t-ri"></div>
+</div>
+
+<!-- 3 ── Existing Reservations ── -->
+<div class="sec">
+  <h2>Existing Reservations</h2>
+  <div class="desc">Active reservation orders with utilization, SKU, type, and expiration details.</div>
+  <div id="t-res"></div>
+</div>
+
+<!-- 4 ── Savings Plans ── -->
+<div class="sec">
+  <h2>Savings Plan Recommendations</h2>
+  <div class="desc">Azure Advisor recommendations for compute savings plans to unlock lower prices.</div>
+  <div id="t-sp"></div>
+</div>
+
+<!-- 5 ── Orphaned Resources ── -->
+<div class="sec">
+  <h2>Orphaned Resources</h2>
+  <div class="desc">Unattached disks, stale snapshots, orphaned public IPs, orphaned NICs, and empty App Service plans.</div>
+  <div class="chart-wrap"><canvas id="orphanChart"></canvas></div>
+  <div id="t-orphan"></div>
+</div>
+
+<script nonce="{REPORT_NONCE}">
+(function(){
+  // >>> DATA:report — overwrite with real values (see prompts/04-create-advisor-report.md)
+  // SAMPLE values below. Savings are ANNUAL, in DATA.currency.
+  var DATA = {
+    currency: 'USD',
+    scopeLabel: 'Subscription {{SUBSCRIPTION_NAME}} ({{SUBSCRIPTION_ID}})',
+    snapshotUtc: '2026-02-14 08:00 UTC',
+    // [vmName, currentSku, action ('Shutdown'|'Resize to <SKU>'), cpuP95, annualSavings, region]
+    vmRightSizing: [
+      ['vm-sample-01','Standard_D4s_v5','Shutdown','1%',1200,'East US'],
+      ['vm-sample-02','Standard_D8s_v5','Resize to Standard_D4s_v5','12%',1500,'East US']
+    ],
+    // [resourceType ('Virtual Machine'|'Managed Disk'|...), sku, qty, term, annualSavings, lookback, scope]
+    reservations: [
+      ['Virtual Machine','Standard_D4s_v5',2,'3-Year',900,'30 days','Single']
+    ],
+    // [displayName, sku, qty, utilizationPct, expiryDate]
+    existingReservations: [],
+    // [type, term, annualSavings, lookback, scope]
+    savingsPlans: [
+      ['Compute','1-Year',600,'30 days','Single']
+    ],
+    // [category ('Unattached Disk'|'Stale Snapshot'|'Orphaned Public IP'|'Orphaned NIC'|'Empty App Svc Plan'), name, issue, resourceGroup]
+    orphans: [
+      ['Unattached Disk','disk-sample-01','Not attached to any VM','rg-sample'],
+      ['Orphaned Public IP','pip-sample-01','Not associated with any resource','rg-sample']
+    ]
+  };
+  // <<< DATA:report
+
+  function money(v){ return new Intl.NumberFormat('en-US',{style:'currency',currency:DATA.currency,maximumFractionDigits:0}).format(v); }
+  function bg(txt,cls){ return gridjs.html('<span class="b '+cls+'">'+String(txt).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];})+'</span>'); }
+  function grid(id,cols,data,emptyMsg){
+    var host=document.getElementById(id);
+    if(!data.length){ host.innerHTML=''; var d=document.createElement('div'); d.className='empty'; d.textContent=emptyMsg; host.appendChild(d); return; }
+    new gridjs.Grid({ columns:cols, data:data, sort:true, search:true, pagination:{limit:15}, style:{table:{'white-space':'nowrap'}} }).render(host);
+  }
+  function maxOf(rows,idx){ return rows.reduce(function(m,r){ return Math.max(m, Number(r[idx])||0); },0); }
+  function sumOf(rows,idx){ return rows.reduce(function(m,r){ return m+(Number(r[idx])||0); },0); }
+
+  document.getElementById('hdr-sub').textContent = DATA.scopeLabel + '  |  Snapshot: ' + DATA.snapshotUtc + '  |  Ask the agent to refresh this report for latest data';
+  document.getElementById('c-vm').textContent = money(sumOf(DATA.vmRightSizing,4)) + '/yr';
+  document.getElementById('c-ri').textContent = money(maxOf(DATA.reservations,4)) + '/yr';
+  document.getElementById('c-sp').textContent = money(maxOf(DATA.savingsPlans,2)) + '/yr';
+  document.getElementById('c-or').textContent = DATA.orphans.length;
+  document.getElementById('c-res').textContent = DATA.existingReservations.length;
+
+  grid('t-vm',['VM Name','Current SKU','Recommendation','CPU P95','Annual Savings','Region'],
+    DATA.vmRightSizing.map(function(r){ return [r[0],r[1],bg(r[2], /^shut/i.test(r[2])?'b-red':'b-amb'),r[3],money(r[4]),r[5]]; }),
+    'No VM right-sizing recommendations.');
+  grid('t-ri',['Type','SKU','Qty','Term','Annual Savings','Lookback','Scope'],
+    DATA.reservations.map(function(r){ return [bg(r[0], /disk/i.test(r[0])?'b-blu':'b-grn'),r[1],String(r[2]),r[3],money(r[4]),r[5],r[6]]; }),
+    'No reservation purchase recommendations.');
+  grid('t-res',['Reservation','SKU','Qty','Utilization','Expires'],
+    DATA.existingReservations.map(function(r){ return [r[0],r[1],String(r[2]),r[3]+'%',r[4]]; }),
+    'No existing reservations found in this scope.');
+  grid('t-sp',['Type','Term','Annual Savings','Lookback','Scope'],
+    DATA.savingsPlans.map(function(r){ return [bg(r[0],'b-blu'),r[1],money(r[2]),r[3],r[4]]; }),
+    'No savings plan recommendations.');
+
+  var cats=['Unattached Disk','Stale Snapshot','Orphaned Public IP','Orphaned NIC','Empty App Svc Plan'];
+  var cls={'Unattached Disk':'b-blu','Stale Snapshot':'b-amb','Orphaned Public IP':'b-red','Orphaned NIC':'b-gry','Empty App Svc Plan':'b-grn'};
+  var counts=cats.map(function(c){ return DATA.orphans.filter(function(o){return o[0]===c;}).length; });
+  new Chart(document.getElementById('orphanChart'),{
+    type:'doughnut',
+    data:{ labels:cats.map(function(c,i){return c+' ('+counts[i]+')';}),
+      datasets:[{data:counts,backgroundColor:['#3b82f6','#f59e0b','#ef4444','#8b5cf6','#10b981'],borderWidth:0}] },
+    options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ font:{family:'Inter',size:11}, padding:12 } } }, cutout:'58%' }
+  });
+  grid('t-orphan',['Category','Resource Name','Issue','Resource Group'],
+    DATA.orphans.map(function(o){ return [bg(o[0],cls[o[0]]||'b-gry'),o[1],o[2],o[3]||'\u2014']; }),
+    'No orphaned resources found.');
+})();
+</script>
+</body>
+</html>

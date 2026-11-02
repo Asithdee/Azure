@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src 'self' 'nonce-{REPORT_NONCE}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://esm.sh;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+    font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+    img-src 'self' data: blob: https:;
+    connect-src 'self';
+  ">
+  <title>Subscription Cost &amp; Budget Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style nonce="{REPORT_NONCE}">
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f7f8fa;
+      color: #1a1d23;
+      line-height: 1.5;
+      padding: 32px 24px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 36px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f1117;
+      letter-spacing: -0.3px;
+    }
+
+    .header .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 4px;
+      font-weight: 400;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .kpi-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .kpi-card.blue::before   { background: #3b82f6; }
+    .kpi-card.slate::before  { background: #64748b; }
+    .kpi-card.green::before  { background: #10b981; }
+    .kpi-card.amber::before  { background: #f59e0b; }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #9ca3af;
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      color: #0f1117;
+    }
+
+    .kpi-note {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f1117;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e5e7eb;
+      letter-spacing: -0.2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    thead {
+      background: #f9fafb;
+    }
+
+    th {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #f3f4f6;
+      color: #374151;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .change-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .change-badge.up {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .change-badge.down {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .change-badge.stable {
+      background: #e0f2fe;
+      color: #0c4a6e;
+    }
+
+    .budget-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .budget-pct.ok     { color: #059669; }
+    .budget-pct.warn   { color: #d97706; }
+    .budget-pct.danger { color: #dc2626; }
+
+    .bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: #f3f4f6;
+      border-radius: 3px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .bar-fill.ok     { background: #10b981; }
+    .bar-fill.warn   { background: #f59e0b; }
+    .bar-fill.danger { background: #ef4444; }
+
+    .snapshot-info {
+      text-align: center;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 16px 12px; }
+      th, td { padding: 10px 10px; font-size: 12px; }
+      .kpi-value { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Subscription Cost &amp; Budget Overview</h1>
+      <div class="subtitle" id="subtitle"></div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card blue"><div class="kpi-label" id="k1l"></div><div class="kpi-value" id="k1v"></div><div class="kpi-note" id="k1n"></div></div>
+      <div class="kpi-card slate"><div class="kpi-label" id="k2l"></div><div class="kpi-value" id="k2v"></div><div class="kpi-note">Full month</div></div>
+      <div class="kpi-card green"><div class="kpi-label" id="k3l"></div><div class="kpi-value" id="k3v"></div><div class="kpi-note">Projected full month</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Expected Change</div><div class="kpi-value" id="k4v"></div><div class="kpi-note" id="k4n"></div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Subscription Cost Summary</div>
+      <table><thead><tr id="sum-head"></tr></thead><tbody id="sum-body"></tbody></table>
+    </div>
+    <div class="section">
+      <div class="section-title">Budgets Configured</div>
+      <table><thead><tr id="bud-head"></tr></thead><tbody id="bud-body"></tbody></table>
+    </div>
+    <div class="snapshot-info" id="snapshot"></div>
+  </div>
+<script nonce="{REPORT_NONCE}">
+(function () {
+  // >>> DATA:report — overwrite with real values (see prompts/03-create-budget-report.md)
+  // SAMPLE values below.
+  const DATA = {
+    currency: 'USD',
+    curMonthLabel: 'Feb 2026', prevMonthLabel: 'Jan 2026',
+    daysElapsed: 14,
+    snapshotUtc: '2026-02-14 08:00 UTC',
+    subscriptions: [
+      { name: 'Sample Subscription', id: '00000000-0000-0000-0000-000000000000', actualMtd: 500.00, lastMonth: 1000.00, forecast: 1050.00 }
+    ],
+    budgets: [
+      { subscription: 'Sample Subscription', name: 'monthly-budget', amount: 1500, currentSpend: 500.00, forecastSpend: 1050.00, period: 'Jan 2026 – Dec 2026' },
+      { subscription: 'Sample Subscription', name: 'hard-cap', amount: 600, currentSpend: 500.00, forecastSpend: null, period: 'Jan 2026 – Dec 2026' }
+    ]
+  };
+  // <<< DATA:report
+
+  const cur = DATA.curMonthLabel.split(' ')[0].slice(0, 3), prev = DATA.prevMonthLabel.split(' ')[0].slice(0, 3);
+  const money = v => (v === null || v === undefined) ? '\u2014' : new Intl.NumberFormat('en-US', { style: 'currency', currency: DATA.currency }).format(v);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+  const set = (id, t) => { document.getElementById(id).textContent = t; };
+  const sum = k => DATA.subscriptions.reduce((a, s) => a + (s[k] || 0), 0);
+  const tA = sum('actualMtd'), tL = sum('lastMonth'), tF = sum('forecast'), d = tF - tL, dp = tL ? d / Math.abs(tL) * 100 : 0;
+
+  set('subtitle', DATA.curMonthLabel + ' month-to-date snapshot \u2014 data as of ' + DATA.snapshotUtc);
+  set('k1l', 'Actual MTD (' + cur + ')'); set('k1v', money(tA)); set('k1n', DATA.daysElapsed + ' days elapsed');
+  set('k2l', 'Last Month (' + prev + ')'); set('k2v', money(tL));
+  set('k3l', 'Forecast (' + cur + ')'); set('k3v', money(tF));
+  set('k4v', (dp >= 0 ? '+' : '') + dp.toFixed(1) + '%'); set('k4n', (d >= 0 ? '+' : '') + money(d) + ' vs ' + DATA.prevMonthLabel);
+  set('snapshot', 'Data snapshot: ' + DATA.snapshotUtc + ' \u00b7 Ask the agent to refresh this report');
+
+  const head = (id, cols) => { const r = document.getElementById(id); cols.forEach(c => r.appendChild(el('th', null, c))); };
+  head('sum-head', ['Subscription', 'Actual MTD (' + cur + ')', 'Last Month (' + prev + ')', 'Forecast (' + cur + ')', 'Expected Change']);
+  head('bud-head', ['Subscription', 'Budget Name', 'Monthly Amount', 'Current Spend', 'Forecast Spend', 'Actual %', 'Forecast %', 'Period']);
+
+  const sb = document.getElementById('sum-body');
+  DATA.subscriptions.forEach(s => {
+    const tr = el('tr'); const n = el('td', null, s.name); n.style.fontWeight = '600'; tr.appendChild(n);
+    [s.actualMtd, s.lastMonth, s.forecast].forEach(v => tr.appendChild(el('td', 'mono', money(v))));
+    const dd = s.forecast - s.lastMonth, pp = s.lastMonth ? dd / Math.abs(s.lastMonth) * 100 : 0;
+    const cls = pp > 10 ? 'up' : pp < -10 ? 'down' : 'stable';
+    const td = el('td'); td.appendChild(el('span', 'change-badge ' + cls, (dd >= 0 ? '\u2191 +' : '\u2193 ') + money(dd) + ' (' + (pp >= 0 ? '+' : '') + pp.toFixed(1) + '%)'));
+    tr.appendChild(td); sb.appendChild(tr);
+  });
+
+  const pctCell = v => {
+    const td = el('td');
+    if (v === null) { const sp = el('span', 'budget-pct', '\u2014'); sp.style.color = '#9ca3af'; td.appendChild(sp); return td; }
+    const lvl = v >= 100 ? 'danger' : v >= 60 ? 'warn' : 'ok';
+    td.appendChild(el('span', 'budget-pct ' + lvl, v.toFixed(1) + '%'));
+    const w = el('div', 'bar-wrap'), f = el('div', 'bar-fill ' + lvl); f.style.width = Math.min(v, 100) + '%'; w.appendChild(f); td.appendChild(w);
+    return td;
+  };
+  const bb = document.getElementById('bud-body');
+  if (!DATA.budgets.length) { const tr = el('tr'), td = el('td', null, 'No budgets configured.'); td.colSpan = 8; tr.appendChild(td); bb.appendChild(tr); }
+  DATA.budgets.forEach(b => {
+    const tr = el('tr'); const n = el('td', null, b.subscription); n.style.fontWeight = '600'; tr.appendChild(n);
+    tr.appendChild(el('td', null, b.name));
+    [b.amount, b.currentSpend, b.forecastSpend].forEach(v => tr.appendChild(el('td', 'mono', money(v))));
+    tr.appendChild(pctCell(b.amount ? b.currentSpend / b.amount * 100 : null));
+    tr.appendChild(pctCell(b.forecastSpend === null || !b.amount ? null : b.forecastSpend / b.amount * 100));
+    const pd = el('td', null, b.period); pd.style.fontSize = '12px'; pd.style.color = '#6b7280'; tr.appendChild(pd);
+    bb.appendChild(tr);
+  });
+})();
+</script>
+</body>
+</html>
